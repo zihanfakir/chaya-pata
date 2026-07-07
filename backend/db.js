@@ -154,12 +154,22 @@ async function getNextId(counterName) {
 }
 
 // --- USER OPERATIONS ---
+function enforceVerificationExpiry(user, docRef = null) {
+  if (user && user.is_verified && user.verified_until && new Date(user.verified_until) < new Date()) {
+    user.is_verified = 0;
+    user.verified_until = null;
+    if (docRef) {
+      docRef.update({ is_verified: 0, verified_until: null }).catch(console.error);
+    }
+  }
+  return user;
+}
 
 async function getUserById(id) {
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('users').where('id', '==', Number(id)).limit(1).get();
     if (snapshot.empty) return null;
-    return snapshot.docs[0].data();
+    return enforceVerificationExpiry(snapshot.docs[0].data(), snapshot.docs[0].ref);
   }
   const db = await readDb();
   return db.users.find(u => u.id === Number(id)) || null;
@@ -170,7 +180,7 @@ async function getUserByUsername(username) {
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('users').where('username', '==', cleanUsername).limit(1).get();
     if (snapshot.empty) return null;
-    return snapshot.docs[0].data();
+    return enforceVerificationExpiry(snapshot.docs[0].data(), snapshot.docs[0].ref);
   }
   const db = await readDb();
   return db.users.find(u => u.username === cleanUsername) || null;
@@ -227,7 +237,7 @@ async function searchUsers(query, excludeUserId) {
     const snapshot = await firestoreDb.collection('users').limit(100).get();
     const users = [];
     snapshot.forEach(doc => {
-      const u = doc.data();
+      const u = enforceVerificationExpiry(doc.data(), doc.ref);
       if (u.id !== Number(excludeUserId) && !u.is_banned) {
         if (u.username.includes(cleanQuery) || u.display_name.toLowerCase().includes(cleanQuery)) {
           users.push({
@@ -905,7 +915,7 @@ async function getAllUsersAdmin() {
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('users').get();
     return snapshot.docs.map(doc => {
-      const u = doc.data();
+      const u = enforceVerificationExpiry(doc.data(), doc.ref);
       return {
         id: u.id,
         username: u.username,
