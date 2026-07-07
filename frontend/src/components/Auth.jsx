@@ -267,51 +267,7 @@ export default function Auth({ serverUrl, setServerUrl, onAuthSuccess }) {
           </button>
         </div>
 
-        {/* Server Config Accordion */}
-        <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-          <button
-            onClick={() => setShowServerConfig(!showServerConfig)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              margin: '0 auto'
-            }}
-          >
-            <Globe size={12} />
-            <span>Connection Settings</span>
-          </button>
-          
-          {showServerConfig && (
-            <div className="animate-pop-in" style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <input
-                type="text"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="https://chaya-pata.onrender.com"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  color: 'var(--text-light)',
-                  fontSize: '12px',
-                  outline: 'none',
-                  textAlign: 'center'
-                }}
-              />
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                Use PC local IP (e.g. http://192.168.1.100:5000) for mobile connection.
-              </span>
-            </div>
-          )}
-        </div>
+
 
       </div>
     </div>
