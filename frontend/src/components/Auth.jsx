@@ -147,7 +147,7 @@ export default function Auth({ serverUrl, setServerUrl, onAuthSuccess }) {
                 <Edit3 size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Example Name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required={isRegister}
@@ -173,7 +173,7 @@ export default function Auth({ serverUrl, setServerUrl, onAuthSuccess }) {
               <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
-                placeholder="johndoe"
+                placeholder="example"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                 required
