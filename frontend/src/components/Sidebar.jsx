@@ -647,17 +647,19 @@ export default function Sidebar({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flex: 1 }}>
-                      <h3 style={{
+                      <span style={{
                         fontSize: '15px',
                         fontWeight: '600',
                         color: 'var(--text-main)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        margin: 0
+                        margin: 0,
+                        flex: '0 1 auto',
+                        minWidth: 0
                       }}>
                         {chat.name}
-                      </h3>
+                      </span>
                       {chat.is_verified === 1 && (
                         <BadgeCheck size={16} color="#009688" fill="#e0f2f1" style={{ flexShrink: 0 }} />
                       )}
