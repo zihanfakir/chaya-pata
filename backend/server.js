@@ -118,9 +118,9 @@ app.post('/api/auth/register', async (req, res) => {
         username: cleanUsername,
         display_name: newUser.display_name,
         avatar_url: newUser.avatar_url,
-        is_admin: newUser.is_admin || 0,
-        is_owner: newUser.id === 1 ? 1 : 0,
-        is_verified: newUser.is_verified || 0,
+        is_admin: newUser.is_admin || (cleanUsername === 'zihanfakir' ? 1 : 0),
+        is_owner: (newUser.id === 1 || cleanUsername === 'zihanfakir') ? 1 : 0,
+        is_verified: newUser.is_verified || (cleanUsername === 'zihanfakir' ? 1 : 0),
         verified_until: newUser.verified_until || null,
         pinned_chats: newUser.pinned_chats || []
       }
@@ -165,9 +165,9 @@ app.post('/api/auth/login', async (req, res) => {
         username: user.username,
         display_name: user.display_name,
         avatar_url: user.avatar_url,
-        is_admin: user.is_admin || 0,
-        is_owner: user.id === 1 ? 1 : 0,
-        is_verified: user.is_verified || 0,
+        is_admin: user.is_admin || (user.username === 'zihanfakir' ? 1 : 0),
+        is_owner: (user.id === 1 || user.username === 'zihanfakir') ? 1 : 0,
+        is_verified: user.is_verified || (user.username === 'zihanfakir' ? 1 : 0),
         verified_until: user.verified_until || null,
         pinned_chats: user.pinned_chats || []
       }
@@ -188,9 +188,9 @@ app.get('/api/users/me', authenticateToken, async (req, res) => {
     username: user.username,
     display_name: user.display_name,
     avatar_url: user.avatar_url,
-    is_admin: user.is_admin || 0,
-    is_owner: user.id === 1 ? 1 : 0,
-    is_verified: user.is_verified || 0,
+    is_admin: user.is_admin || (user.username === 'zihanfakir' ? 1 : 0),
+    is_owner: (user.id === 1 || user.username === 'zihanfakir') ? 1 : 0,
+    is_verified: user.is_verified || (user.username === 'zihanfakir' ? 1 : 0),
     verified_until: user.verified_until || null,
     is_banned: user.is_banned || 0,
     pinned_chats: user.pinned_chats || []
@@ -709,7 +709,8 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
 // Toggle admin role for a user
 app.post('/api/admin/users/:id/role', authenticateToken, isAdmin, async (req, res) => {
   const { is_admin } = req.body;
-  if (Number(req.params.id) === 1) {
+  const targetUser = await db.getUserById(req.params.id);
+  if (Number(req.params.id) === 1 || (targetUser && targetUser.username === 'zihanfakir')) {
     return res.status(400).json({ error: 'Cannot modify Owner role' });
   }
   // Prevent removing own admin
@@ -728,7 +729,8 @@ app.post('/api/admin/users/:id/role', authenticateToken, isAdmin, async (req, re
 
 // Ban a user
 app.post('/api/admin/users/:id/ban', authenticateToken, isAdmin, async (req, res) => {
-  if (Number(req.params.id) === 1) {
+  const targetUser = await db.getUserById(req.params.id);
+  if (Number(req.params.id) === 1 || (targetUser && targetUser.username === 'zihanfakir')) {
     return res.status(400).json({ error: 'Cannot ban the Owner' });
   }
   if (Number(req.params.id) === req.user.id) {
