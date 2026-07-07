@@ -293,7 +293,7 @@ export default function Auth({ serverUrl, setServerUrl, onAuthSuccess }) {
                 type="text"
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="http://localhost:5000"
+                placeholder="https://chaya-pata.onrender.com"
                 style={{
                   width: '100%',
                   padding: '8px 12px',
