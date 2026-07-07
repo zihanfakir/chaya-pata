@@ -11,6 +11,9 @@ backend/database.json.tmp
 backend/database.json.bak
 database.json
 database.json.tmp
+firebase-key.json
+backend/firebase-key.json
+*.json.tmp
 
 # Log files
 *.log
