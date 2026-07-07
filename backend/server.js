@@ -22,6 +22,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// Health Check Endpoint (useful for UptimeRobot)
+app.get('/', (req, res) => {
+  res.status(200).send('Chaya-Pata Backend is Awake and Running!');
+});
+
 // In-memory tracking of online users: userId -> socketId
 const onlineUsers = new Map();
 
