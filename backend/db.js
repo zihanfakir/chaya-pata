@@ -51,7 +51,13 @@ async function readDb() {
     };
   }
 
-  const data = JSON.parse(content);
+  let data;
+  try {
+    data = JSON.parse(content);
+  } catch (parseError) {
+    console.error('Failed to parse database.json, returning empty structure:', parseError);
+    return { users: [], messages: [], groups: [], group_members: [], verification_requests: [], friendships: [], blocked_users: [] };
+  }
   let dbUpdated = false;
   const now = new Date();
   
@@ -418,11 +424,13 @@ async function getGroupMembers(groupId) {
   return db.users.filter(u => memberIds.includes(u.id));
 }
 
-async function updateGroupSettings(groupId, name) {
+async function updateGroupSettings(groupId, name, avatarUrl) {
   const gId = Number(groupId);
 
   if (firestoreDb) {
-    await firestoreDb.collection('groups').doc(String(gId)).update({ name: name.trim() });
+    const updateData = { name: name.trim() };
+    if (avatarUrl) updateData.avatar_url = avatarUrl;
+    await firestoreDb.collection('groups').doc(String(gId)).update(updateData);
     return { success: true };
   }
 
@@ -431,6 +439,7 @@ async function updateGroupSettings(groupId, name) {
   if (!group) return { error: 'Group not found' };
 
   group.name = name.trim();
+  if (avatarUrl) group.avatar_url = avatarUrl;
   await writeDb(db);
   return { success: true };
 }
@@ -461,42 +470,33 @@ async function getUserGroups(userId) {
 
 // --- MESSAGE OPERATIONS ---
 
-async function saveMessage(chatType, senderId, receiverId, groupId, content, replyToId) {
-  if (firestoreDb) {
-    const newMsgId = await getNextId('messages');
-    const newMessage = {
-      id: newMsgId,
-      chat_type: chatType,
-      sender_id: Number(senderId),
-      receiver_id: receiverId ? Number(receiverId) : null,
-      group_id: groupId ? Number(groupId) : null,
-      content: content.trim(),
-      reply_to_id: replyToId ? Number(replyToId) : null,
-      created_at: new Date().toISOString(),
-      status: 'sent',
-      reactions: {}
-    };
-    await firestoreDb.collection('messages').doc(String(newMsgId)).set(newMessage);
-    return newMessage;
-  }
-
-  const db = await readDb();
-  const newMessage = {
-    id: db.messages.length > 0 ? Math.max(...db.messages.map(m => m.id)) + 1 : 1,
+async function saveMessage(senderId, receiverId, chatType, groupId, content, messageType = 'text', status = 'sent', imageUrl = null, replyToId = null) {
+  const newMsg = {
     chat_type: chatType,
     sender_id: Number(senderId),
     receiver_id: receiverId ? Number(receiverId) : null,
     group_id: groupId ? Number(groupId) : null,
-    content: content.trim(),
+    content: content ? content.trim() : '',
+    message_type: messageType,
+    image_url: imageUrl,
     reply_to_id: replyToId ? Number(replyToId) : null,
     created_at: new Date().toISOString(),
-    status: 'sent',
+    status: status,
     reactions: {}
   };
 
-  db.messages.push(newMessage);
+  if (firestoreDb) {
+    const newMsgId = await getNextId('messages');
+    newMsg.id = newMsgId;
+    await firestoreDb.collection('messages').doc(String(newMsgId)).set(newMsg);
+    return newMsg;
+  }
+
+  const db = await readDb();
+  newMsg.id = db.messages.length > 0 ? Math.max(...db.messages.map(m => m.id)) + 1 : 1;
+  db.messages.push(newMsg);
   await writeDb(db);
-  return newMessage;
+  return newMsg;
 }
 
 async function getPrivateMessages(user1, user2) {
@@ -662,7 +662,7 @@ async function deleteChat(userId, targetId, chatType) {
   const db = await readDb();
   if (chatType === 'private') {
     db.messages = db.messages.filter(m => 
-      !(m.chat_type === 'private' && ((m.sender_id === u1 && m.receiver_id === u2) || (m.sender_id === u2 && m.receiver_id === u1)))
+      !(m.chat_type === 'private' && ((m.sender_id === uId && m.receiver_id === tId) || (m.sender_id === tId && m.receiver_id === uId)))
     );
   } else {
     db.group_members = db.group_members.filter(gm => !(gm.group_id === tId && gm.user_id === uId));
@@ -671,7 +671,7 @@ async function deleteChat(userId, targetId, chatType) {
   return { success: true };
 }
 
-async function getChats(userId) {
+async function getChats(userId, onlineUsers = new Map()) {
   const uId = Number(userId);
 
   if (firestoreDb) {
@@ -704,7 +704,7 @@ async function getChats(userId) {
         last_message: lastMsg,
         unread_count: unread,
         updated_at: lastMsg ? lastMsg.created_at : fUser.created_at,
-        online: false
+        online: onlineUsers.has(Number(friend.id))
       });
     }
 
@@ -751,7 +751,7 @@ async function getChats(userId) {
         last_message: lastMsg,
         unread_count: unreadCount,
         updated_at: lastMsg ? lastMsg.created_at : contactUser.created_at,
-        online: false
+        online: onlineUsers.has(Number(contactUser.id))
       });
     }
   });
@@ -807,7 +807,7 @@ async function createVerificationRequest(userId, durationHours) {
   const uId = Number(userId);
 
   if (firestoreDb) {
-    const newReqId = await getNextId('friendships'); // Sharing counters for request compatibility
+    const newReqId = await getNextId('verification_requests');
     const newRequest = {
       id: newReqId,
       user_id: uId,
@@ -870,11 +870,18 @@ async function getVerificationRequests() {
     });
 }
 
-async function updateVerificationRequest(requestId, status) {
+async function updateVerificationRequest(requestId, status, customMinutes = 0) {
   const rId = Number(requestId);
 
   if (firestoreDb) {
-    await firestoreDb.collection('verification_requests').doc(String(rId)).update({ status });
+    const docRef = firestoreDb.collection('verification_requests').doc(String(rId));
+    const reqDoc = await docRef.get();
+    if (reqDoc.exists) {
+      await docRef.update({ status });
+      if (status === 'approved') {
+        await updateUserBlueTick(reqDoc.data().user_id, true, customMinutes);
+      }
+    }
     return { success: true };
   }
 
@@ -884,6 +891,10 @@ async function updateVerificationRequest(requestId, status) {
 
   request.status = status;
   await writeDb(db);
+  
+  if (status === 'approved') {
+    await updateUserBlueTick(request.user_id, true, customMinutes);
+  }
   return { success: true };
 }
 

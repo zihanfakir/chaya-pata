@@ -51,13 +51,13 @@ export default function ChatWindow({
 
   // Emit mark_read when chat is opened or new messages arrive
   useEffect(() => {
-    if (activeChat && socket && messages.length > 0) {
+    if (activeChat && socket && messages.length > 0 && user) {
       const hasUnread = messages.some(m => m.sender_id !== user.id && m.is_read !== 1);
       if (hasUnread) {
         socket.emit('mark_read', { chat_type: activeChat.chat_type, target_id: activeChat.id });
       }
     }
-  }, [messages, activeChat, socket, user.id]);
+  }, [messages, activeChat, socket, user?.id]);
 
   // Fetch group members if active chat is a group, or friend status if private
   useEffect(() => {

@@ -2,6 +2,9 @@
   "name": "whatsapp-clone-backend",
   "version": "1.0.0",
   "description": "Backend server for WhatsApp clone with username authentication",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

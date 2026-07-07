@@ -37,6 +37,9 @@ export default function App() {
   const [socket, setSocket] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const fetchChatsListRef = useRef();
+  const handleLogoutRef = useRef();
+
   // Custom UI States (Toast & Confirm)
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
   const [confirmDialog, setConfirmDialog] = useState({ show: false, title: '', message: '', onConfirm: null });
@@ -46,6 +49,8 @@ export default function App() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
 
   const showConfirm = (title, message, onConfirm) => {
     setConfirmDialog({ show: true, title, message, onConfirm });
@@ -85,6 +90,8 @@ export default function App() {
       console.warn('Audio context failed to play', e);
     }
   };
+  const playChimeRef = useRef(playChime);
+  playChimeRef.current = playChime;
 
   // Sync document title with unread notifications
   useEffect(() => {
@@ -149,12 +156,12 @@ export default function App() {
         const currentUser = userRef.current;
         if (currentUser && msg.sender_id !== currentUser.id) {
           setUnreadCount(prev => prev + 1);
-          playChime();
+          if (playChimeRef.current) playChimeRef.current();
         }
       }
 
       // Refresh chat list to update snippet & unread counts
-      fetchChatsList();
+      if (fetchChatsListRef.current) fetchChatsListRef.current();
     });
 
     // Handle read receipt
@@ -200,16 +207,16 @@ export default function App() {
 
     // Group updates
     newSocket.on('group_created', (groupDetails) => {
-      fetchChatsList();
+      if (fetchChatsListRef.current) fetchChatsListRef.current();
     });
     newSocket.on('group_update', ({ groupId }) => {
-      fetchChatsList();
+      if (fetchChatsListRef.current) fetchChatsListRef.current();
     });
 
     // Handle deleted messages
     newSocket.on('message_deleted', ({ message_id }) => {
       setMessages(prev => prev.filter(m => m.id !== message_id));
-      fetchChatsList();
+      if (fetchChatsListRef.current) fetchChatsListRef.current();
     });
 
     // Handle reaction
@@ -232,8 +239,8 @@ export default function App() {
 
     // Handle Ban Event
     newSocket.on('banned', () => {
-      handleLogout();
-      showToast('Your account has been banned by an admin.', 'error');
+      if (handleLogoutRef.current) handleLogoutRef.current();
+      if (showToastRef.current) showToastRef.current('Your account has been banned by an admin.', 'error');
     });
 
     return () => {
@@ -264,16 +271,19 @@ export default function App() {
     if (!token) return;
     try {
       const res = await fetch(`${serverUrl}/api/chats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setChats(data);
+        const totalUnread = data.reduce((acc, chat) => acc + (chat.unread_count || 0), 0);
+        setUnreadCount(totalUnread);
       }
     } catch (err) {
-      console.error('Error fetching chats:', err);
+      console.error('Fetch chats failed', err);
     }
   };
+  fetchChatsListRef.current = fetchChatsList;
 
   // Fetch chats on initial token load
   useEffect(() => {
@@ -355,6 +365,7 @@ export default function App() {
     setMessages([]);
     if (socket) socket.disconnect();
   };
+  handleLogoutRef.current = handleLogout;
 
   // Toggle App Theme
   const toggleTheme = () => {
