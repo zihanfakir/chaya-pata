@@ -654,8 +654,7 @@ export default function Sidebar({
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        margin: 0,
-                        flex: 1
+                        margin: 0
                       }}>
                         {chat.name}
                       </h3>
