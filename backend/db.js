@@ -505,19 +505,21 @@ async function getPrivateMessages(user1, user2) {
 
   if (firestoreDb) {
     const snapshot1 = await firestoreDb.collection('messages')
-      .where('chat_type', '==', 'private')
       .where('sender_id', '==', u1)
-      .where('receiver_id', '==', u2)
       .get();
     const snapshot2 = await firestoreDb.collection('messages')
-      .where('chat_type', '==', 'private')
       .where('sender_id', '==', u2)
-      .where('receiver_id', '==', u1)
       .get();
     
     const messages = [];
-    snapshot1.forEach(doc => messages.push(doc.data()));
-    snapshot2.forEach(doc => messages.push(doc.data()));
+    snapshot1.forEach(doc => {
+      const data = doc.data();
+      if (data.chat_type === 'private' && data.receiver_id === u2) messages.push(data);
+    });
+    snapshot2.forEach(doc => {
+      const data = doc.data();
+      if (data.chat_type === 'private' && data.receiver_id === u1) messages.push(data);
+    });
     return messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
 
@@ -552,15 +554,15 @@ async function markMessagesAsRead(senderId, receiverId) {
 
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('messages')
-      .where('chat_type', '==', 'private')
       .where('sender_id', '==', sId)
-      .where('receiver_id', '==', rId)
-      .where('status', '!=', 'read')
       .get();
     
     const batch = firestoreDb.batch();
     snapshot.forEach(doc => {
-      batch.update(doc.ref, { status: 'read' });
+      const data = doc.data();
+      if (data.chat_type === 'private' && data.receiver_id === rId && data.status !== 'read') {
+        batch.update(doc.ref, { status: 'read' });
+      }
     });
     await batch.commit();
     return;
@@ -581,14 +583,15 @@ async function markMessagesAsDelivered(userId) {
 
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('messages')
-      .where('chat_type', '==', 'private')
       .where('receiver_id', '==', uId)
-      .where('status', '==', 'sent')
       .get();
     
     const batch = firestoreDb.batch();
     snapshot.forEach(doc => {
-      batch.update(doc.ref, { status: 'delivered' });
+      const data = doc.data();
+      if (data.chat_type === 'private' && data.status === 'sent') {
+        batch.update(doc.ref, { status: 'delivered' });
+      }
     });
     await batch.commit();
     return;
