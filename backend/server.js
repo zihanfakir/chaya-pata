@@ -445,7 +445,7 @@ app.delete('/api/friends/:id', authenticateToken, async (req, res) => {
 
 // Create a Group
 app.post('/api/groups', authenticateToken, async (req, res) => {
-  const { name, members } = req.body;
+  const { name, members, avatar_url } = req.body;
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: 'Group name is required' });
   }
@@ -454,11 +454,12 @@ app.post('/api/groups', authenticateToken, async (req, res) => {
   }
 
   try {
-    const group = await db.createGroup(name, req.user.id, members || []);
+    const group = await db.createGroup(name, req.user.id, members || [], avatar_url);
     
     const groupDetails = {
       id: group.id,
       name: group.name,
+      avatar_url: group.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=009688&color=fff&size=128&bold=true`,
       created_by: group.created_by,
       chat_type: 'group'
     };

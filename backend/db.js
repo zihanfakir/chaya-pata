@@ -306,13 +306,14 @@ async function getGroupById(groupId) {
   return db.groups.find(g => g.id === Number(groupId)) || null;
 }
 
-async function createGroup(name, creatorId, memberIds = []) {
+async function createGroup(name, creatorId, memberIds = [], avatar_url = null) {
   if (firestoreDb) {
     const newGroupId = await getNextId('groups');
     const newGroup = {
       id: newGroupId,
       name: name.trim(),
       created_by: Number(creatorId),
+      avatar_url: avatar_url,
       created_at: new Date().toISOString()
     };
     await firestoreDb.collection('groups').doc(String(newGroupId)).set(newGroup);
@@ -338,6 +339,7 @@ async function createGroup(name, creatorId, memberIds = []) {
     id: newGroupId,
     name: name.trim(),
     created_by: Number(creatorId),
+    avatar_url: avatar_url,
     created_at: new Date().toISOString()
   };
 
@@ -714,7 +716,7 @@ async function getChats(userId) {
       chatsList.push({
         id: g.id,
         name: g.name,
-        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&background=009688&color=fff&size=128&bold=true`,
+        avatar_url: g.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&background=009688&color=fff&size=128&bold=true`,
         chat_type: 'group',
         last_message: lastMsg,
         unread_count: 0,
@@ -764,7 +766,7 @@ async function getChats(userId) {
     chatsList.push({
       id: g.id,
       name: g.name,
-      avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&background=009688&color=fff&size=128&bold=true`,
+      avatar_url: g.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&background=009688&color=fff&size=128&bold=true`,
       chat_type: 'group',
       last_message: lastMsg,
       unread_count: 0,

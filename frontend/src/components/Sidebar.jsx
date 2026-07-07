@@ -31,6 +31,8 @@ export default function Sidebar({
   const [groupSearchQuery, setGroupSearchQuery] = useState('');
   const [groupSearchResults, setGroupSearchResults] = useState([]);
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]); // array of user objects
+  const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
+  const groupAvatarInputRef = useRef(null);
 
   // Settings modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -261,6 +263,12 @@ export default function Sidebar({
     if (!groupName.trim()) return;
 
     try {
+      let avatar_url = null;
+      if (groupAvatarInputRef.current?.files?.[0]) {
+        showToast('Uploading group image...', 'info');
+        avatar_url = await uploadToImgBB(groupAvatarInputRef.current.files[0]);
+      }
+
       const response = await fetch(`${serverUrl}/api/groups`, {
         method: 'POST',
         headers: {
@@ -269,7 +277,8 @@ export default function Sidebar({
         },
         body: JSON.stringify({
           name: groupName.trim(),
-          members: selectedGroupMembers.map(m => m.id)
+          members: selectedGroupMembers.map(m => m.id),
+          avatar_url
         })
       });
 
@@ -869,6 +878,7 @@ export default function Sidebar({
                   setShowGroupModal(false);
                   setGroupName('');
                   setSelectedGroupMembers([]);
+                  setGroupAvatarPreview(null);
                 }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
@@ -878,6 +888,41 @@ export default function Sidebar({
 
             <form onSubmit={handleCreateGroupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
+              {/* Group Avatar input */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <div 
+                  style={{ position: 'relative', cursor: 'pointer' }}
+                  onClick={() => groupAvatarInputRef.current?.click()}
+                  title="Upload Group Picture"
+                >
+                  <img 
+                    src={groupAvatarPreview || `https://ui-avatars.com/api/?name=Group&background=009688&color=fff&size=80`} 
+                    alt="Group Avatar" 
+                    style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
+                  />
+                  <div style={{
+                    position: 'absolute', bottom: 0, right: 0, background: 'var(--primary)', 
+                    borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Plus size={14} color="#000" />
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={groupAvatarInputRef} 
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setGroupAvatarPreview(reader.result);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
               {/* Group Name input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: '500' }}>Group Name</label>
