@@ -2,7 +2,6 @@ const fs = require('fs/promises');
 const path = require('path');
 
 const DB_FILE = path.join(__dirname, 'database.json');
-let admin;
 let firestoreDb = null;
 
 // Initialize Firebase if secret file exists or env variable is set
@@ -20,11 +19,13 @@ try {
   }
 
   if (serviceAccount) {
-    admin = require('firebase-admin');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+    const { initializeApp, cert } = require('firebase-admin/app');
+    const { getFirestore } = require('firebase-admin/firestore');
+    
+    initializeApp({
+      credential: cert(serviceAccount)
     });
-    firestoreDb = admin.firestore();
+    firestoreDb = getFirestore();
     console.log('Firebase Firestore DB connector initialized successfully.');
   } else {
     console.log('Firebase service account key not found. Using local JSON database.');
