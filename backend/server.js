@@ -69,6 +69,36 @@ const isAdmin = async (req, res, next) => {
   }
 };
 
+// --- IMAGE UPLOAD PROXY ROUTE ---
+app.post('/api/upload-image', async (req, res) => {
+  const { image } = req.body;
+  if (!image) {
+    return res.status(400).json({ error: 'No image provided' });
+  }
+
+  try {
+    const IMGBB_API_KEY = 'fe67bacbf7586fd5d2c9b4e9d2969332';
+    
+    const formData = new URLSearchParams();
+    formData.append('image', image);
+
+    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await imgbbRes.json();
+    if (!imgbbRes.ok) {
+      return res.status(imgbbRes.status).json({ error: data.error?.message || 'ImgBB upload failed' });
+    }
+
+    res.json({ url: data.data.url });
+  } catch (error) {
+    console.error('Upload proxy error:', error);
+    res.status(500).json({ error: 'Internal server error during upload proxy' });
+  }
+});
+
 // --- AUTH API ROUTES ---
 
 // Register User
