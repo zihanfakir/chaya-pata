@@ -920,7 +920,8 @@ export default function ChatWindow({
               transition: 'background 0.2s',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
             onMouseEnter={(e) => { if (!(isBlockedByMe || isBlockedByThem)) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -943,7 +944,8 @@ export default function ChatWindow({
               transition: 'background 0.2s',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
             onMouseEnter={(e) => { if (!(isBlockedByMe || isBlockedByThem)) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1005,7 +1007,8 @@ export default function ChatWindow({
               color: inputText.trim() ? '#fff' : 'var(--text-muted)',
               cursor: inputText.trim() ? 'pointer' : 'default',
               boxShadow: inputText.trim() ? '0 4px 10px rgba(0, 191, 165, 0.2)' : 'none',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              flexShrink: 0
             }}
           >
             <Send size={18} />
