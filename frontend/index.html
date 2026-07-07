@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#00bfa5" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>ছায়া.পাতা</title>
+  </head>
+  <body>
+    <div id="error-overlay" style="color: red; padding: 20px; font-family: monospace; white-space: pre-wrap; z-index: 999999; position: absolute;"></div>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        document.getElementById('error-overlay').innerText += message + '\n' + (error ? error.stack : '') + '\n\n';
+      };
+      window.onunhandledrejection = function(event) {
+        document.getElementById('error-overlay').innerText += 'Unhandled Rejection: ' + event.reason + '\n\n';
+      };
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
