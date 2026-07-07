@@ -1,4 +1,4 @@
-export const IMGBB_API_KEY = 'd56dbc5ab20a283240dd980bfb387a1a';
+export const IMGBB_API_KEY = 'fe67bacbf7586fd5d2c9b4e9d2969332';
 
 /**
  * Uploads an image file to ImgBB and returns the URL.
