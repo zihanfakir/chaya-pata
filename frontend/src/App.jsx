@@ -8,7 +8,7 @@ import AdminPanel from './components/AdminPanel';
 export default function App() {
   // Config & Session State
   const [serverUrl, setServerUrl] = useState(() => {
-    return localStorage.getItem('zihanchat_server_url') || `http://${window.location.hostname}:5000`;
+    return localStorage.getItem('zihanchat_server_url') || 'https://chaya-pata.onrender.com';
   });
   const [token, setToken] = useState(() => localStorage.getItem('zihanchat_token') || '');
   const [user, setUser] = useState(() => {
