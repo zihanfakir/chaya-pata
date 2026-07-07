@@ -173,7 +173,7 @@ export default function Auth({ serverUrl, setServerUrl, onAuthSuccess }) {
               <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
-                placeholder="zihan123"
+                placeholder="zihanfakir"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                 required
