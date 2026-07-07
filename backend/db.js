@@ -155,11 +155,16 @@ async function getNextId(counterName) {
 
 // --- USER OPERATIONS ---
 function enforceVerificationExpiry(user, docRef = null) {
-  if (user && user.is_verified && user.verified_until && new Date(user.verified_until) < new Date()) {
-    user.is_verified = 0;
-    user.verified_until = null;
-    if (docRef) {
-      docRef.update({ is_verified: 0, verified_until: null }).catch(console.error);
+  if (user && user.is_verified === 1 && user.verified_until) {
+    const expiryDate = new Date(user.verified_until);
+    const now = new Date();
+    if (expiryDate < now) {
+      console.log(`Verification expired for user ${user.username}, removing blue tick.`);
+      user.is_verified = 0;
+      user.verified_until = null;
+      if (docRef) {
+        docRef.update({ is_verified: 0, verified_until: null }).catch(console.error);
+      }
     }
   }
   return user;
