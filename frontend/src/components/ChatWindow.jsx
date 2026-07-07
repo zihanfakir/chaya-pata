@@ -536,7 +536,7 @@ export default function ChatWindow({
         <h2 style={{ fontSize: '26px', fontWeight: '700', marginBottom: '10px' }}>ছায়া.পাতা</h2>
         <p style={{ color: 'var(--text-muted)', maxWidth: '420px', fontSize: '15px', lineHeight: '1.6' }}>
           Send and receive real-time messages instantly using simple username handles. 
-          No phone number required. Configure connection settings in the Auth screen to connect other devices.
+          No phone number required.
         </p>
         
         <div style={{
