@@ -408,9 +408,12 @@ export default function ChatWindow({
                 alt="Shared image" 
                 style={{ 
                   width: '100%', maxWidth: '280px', maxHeight: '280px', objectFit: 'cover', 
-                  borderRadius: '8px', marginBottom: msg.content ? '8px' : '0', cursor: 'pointer' 
+                  borderRadius: '8px', marginBottom: msg.content ? '8px' : '0', cursor: 'pointer',
+                  userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none'
                 }}
                 onClick={() => setLightboxImage(msg.image_url)}
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
               />
             )}
 
@@ -1226,8 +1229,12 @@ export default function ChatWindow({
               maxHeight: '90%',
               borderRadius: '8px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              objectFit: 'contain'
+              objectFit: 'contain',
+              userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none'
             }}
+            onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
           />
           <button 
             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}

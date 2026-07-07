@@ -843,7 +843,7 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  const userId = socket.user.id;
+  const userId = Number(socket.user.id);
   const username = socket.user.username;
 
   onlineUsers.set(userId, socket.id);
