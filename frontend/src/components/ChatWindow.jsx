@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Image as ImageIcon, MoreVertical, UserPlus, X, Check, CheckCheck, Smile, Trash2, BadgeCheck, Copy, Reply, Shield, Pin, Settings } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-
+import { uploadToImgBB } from '../utils/imgbb';
 export default function ChatWindow({
   activeChat,
   messages,
@@ -32,6 +32,7 @@ export default function ChatWindow({
 
   // New Feature States
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showChatMenu, setShowChatMenu] = useState(false);
@@ -192,7 +193,7 @@ export default function ChatWindow({
     setInputText(prev => prev + emojiObject.emoji);
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -206,14 +207,18 @@ export default function ChatWindow({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64Image = ev.target.result;
-      onSendMessage('', 'image', base64Image, replyingTo?.id);
+    setIsUploadingImage(true);
+    try {
+      showToast('Uploading image...', 'info');
+      const imageUrl = await uploadToImgBB(file);
+      onSendMessage('', 'image', imageUrl, replyingTo?.id);
       setReplyingTo(null);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = ''; // reset
+    } catch (error) {
+      showToast('Image upload failed. Try again.', 'error');
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = ''; // reset
+    }
   };
 
   const handleReact = (messageId, emoji) => {
@@ -879,6 +884,12 @@ export default function ChatWindow({
             <button onClick={() => setReplyingTo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
               <X size={18} />
             </button>
+          </div>
+        )}
+
+        {isUploadingImage && (
+          <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '8px 16px', fontStyle: 'italic', background: 'var(--bg-secondary)' }}>
+            Uploading image...
           </div>
         )}
 

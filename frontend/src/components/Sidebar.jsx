@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, Users, Settings, LogOut, Sun, Moon, Plus, X, Check, CheckCheck, BadgeCheck, Shield, CheckCircle, Trash2, Pin, MoreVertical } from 'lucide-react';
 import confetti from 'canvas-confetti';
-
+import { uploadToImgBB } from '../utils/imgbb';
 export default function Sidebar({
   user,
   chats,
@@ -1108,7 +1108,13 @@ export default function Sidebar({
                   }
 
                   const payload = { display_name: editDisplayName };
-                  if (editAvatarBase64) payload.avatar_url = editAvatarBase64;
+                  
+                  if (avatarInputRef.current?.files?.[0]) {
+                    showToast('Uploading profile picture...', 'info');
+                    payload.avatar_url = await uploadToImgBB(avatarInputRef.current.files[0]);
+                  } else if (editAvatarBase64) {
+                    payload.avatar_url = editAvatarBase64;
+                  }
                   
                   const res = await fetch(`${serverUrl}/api/users/profile`, {
                     method: 'PUT',
