@@ -4,6 +4,39 @@ const path = require('path');
 const DB_FILE = path.join(__dirname, 'database.json');
 let firestoreDb = null;
 
+// --- USER CACHE ---
+const userCacheById = new Map();
+const userCacheByUsername = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getFromCache(map, key) {
+  const entry = map.get(key);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+    return entry.data;
+  }
+  map.delete(key);
+  return null;
+}
+
+function setInCache(user) {
+  if (!user) return;
+  // Deep clone to prevent accidental modification of cached object
+  const cloned = JSON.parse(JSON.stringify(user));
+  const entry = { data: cloned, timestamp: Date.now() };
+  userCacheById.set(Number(user.id), entry);
+  userCacheByUsername.set(user.username, entry);
+}
+
+function invalidateUserCacheById(id) {
+  const numId = Number(id);
+  const entry = userCacheById.get(numId);
+  userCacheById.delete(numId);
+  if (entry && entry.data && entry.data.username) {
+    userCacheByUsername.delete(entry.data.username);
+  }
+}
+
+
 // Initialize Firebase if secret file exists or env variable is set
 try {
   let serviceAccount = null;
@@ -171,24 +204,39 @@ function enforceVerificationExpiry(user, docRef = null) {
 }
 
 async function getUserById(id) {
+  const numId = Number(id);
+  const cached = getFromCache(userCacheById, numId);
+  if (cached) return enforceVerificationExpiry(JSON.parse(JSON.stringify(cached)), null);
+
   if (firestoreDb) {
-    const snapshot = await firestoreDb.collection('users').where('id', '==', Number(id)).limit(1).get();
+    const snapshot = await firestoreDb.collection('users').where('id', '==', numId).limit(1).get();
     if (snapshot.empty) return null;
-    return enforceVerificationExpiry(snapshot.docs[0].data(), snapshot.docs[0].ref);
+    const user = snapshot.docs[0].data();
+    setInCache(user);
+    return enforceVerificationExpiry(user, snapshot.docs[0].ref);
   }
   const db = await readDb();
-  return db.users.find(u => u.id === Number(id)) || null;
+  const user = db.users.find(u => u.id === numId) || null;
+  if (user) setInCache(user);
+  return user;
 }
 
 async function getUserByUsername(username) {
   const cleanUsername = username.trim().toLowerCase();
+  const cached = getFromCache(userCacheByUsername, cleanUsername);
+  if (cached) return enforceVerificationExpiry(JSON.parse(JSON.stringify(cached)), null);
+
   if (firestoreDb) {
     const snapshot = await firestoreDb.collection('users').where('username', '==', cleanUsername).limit(1).get();
     if (snapshot.empty) return null;
-    return enforceVerificationExpiry(snapshot.docs[0].data(), snapshot.docs[0].ref);
+    const user = snapshot.docs[0].data();
+    setInCache(user);
+    return enforceVerificationExpiry(user, snapshot.docs[0].ref);
   }
   const db = await readDb();
-  return db.users.find(u => u.username === cleanUsername) || null;
+  const user = db.users.find(u => u.username === cleanUsername) || null;
+  if (user) setInCache(user);
+  return user;
 }
 
 async function createUser(username, password_hash, display_name, avatar_url) {
@@ -233,6 +281,7 @@ async function createUser(username, password_hash, display_name, avatar_url) {
 
   db.users.push(newUser);
   await writeDb(db);
+  setInCache(newUser);
   return newUser;
 }
 
@@ -802,6 +851,7 @@ async function updateUserLastSeen(userId, timestamp) {
 
   if (firestoreDb) {
     await firestoreDb.collection('users').doc(String(uId)).update({ last_seen: timestamp });
+    invalidateUserCacheById(userId);
     return;
   }
 
@@ -818,6 +868,7 @@ async function updateUserLastSeen(userId, timestamp) {
 
   if (updated) {
     await writeDb(db);
+    invalidateUserCacheById(userId);
   }
 }
 
@@ -958,6 +1009,7 @@ async function updateUserAdminRole(targetUserId, isAdmin) {
 
   if (firestoreDb) {
     await firestoreDb.collection('users').doc(String(tId)).update({ is_admin: isAdmin ? 1 : 0 });
+    invalidateUserCacheById(tId);
     return { success: true };
   }
 
@@ -967,6 +1019,7 @@ async function updateUserAdminRole(targetUserId, isAdmin) {
   
   user.is_admin = isAdmin ? 1 : 0;
   await writeDb(db);
+  invalidateUserCacheById(tId);
   return { success: true };
 }
 
@@ -975,6 +1028,7 @@ async function banUser(userId) {
 
   if (firestoreDb) {
     await firestoreDb.collection('users').doc(String(uId)).update({ is_banned: 1 });
+    invalidateUserCacheById(userId);
     return true;
   }
 
@@ -983,6 +1037,7 @@ async function banUser(userId) {
   if (user) {
     user.is_banned = 1;
     await writeDb(db);
+    invalidateUserCacheById(userId);
     return true;
   }
   return false;
@@ -993,6 +1048,7 @@ async function unbanUser(userId) {
 
   if (firestoreDb) {
     await firestoreDb.collection('users').doc(String(uId)).update({ is_banned: 0 });
+    invalidateUserCacheById(userId);
     return true;
   }
 
@@ -1001,6 +1057,7 @@ async function unbanUser(userId) {
   if (user) {
     user.is_banned = 0;
     await writeDb(db);
+    invalidateUserCacheById(userId);
     return true;
   }
   return false;
@@ -1021,6 +1078,7 @@ async function updateUserBlueTick(userId, grantTick, customMinutes = 0) {
       updateData.verified_until = null;
     }
     await firestoreDb.collection('users').doc(String(uId)).update(updateData);
+    invalidateUserCacheById(userId);
     return true;
   }
 
@@ -1037,6 +1095,7 @@ async function updateUserBlueTick(userId, grantTick, customMinutes = 0) {
       user.verified_until = null;
     }
     await writeDb(db);
+    invalidateUserCacheById(userId);
     return true;
   }
   return false;
@@ -1094,6 +1153,7 @@ async function savePushToken(userId, tokenStr) {
       if (!tokens.includes(tokenStr)) {
         tokens.push(tokenStr);
         await docRef.update({ push_tokens: tokens });
+        invalidateUserCacheById(userId);
       }
     }
   } else {
@@ -1106,6 +1166,7 @@ async function savePushToken(userId, tokenStr) {
       if (!db.users[userIndex].push_tokens.includes(tokenStr)) {
         db.users[userIndex].push_tokens.push(tokenStr);
         await writeDb(db);
+        invalidateUserCacheById(userId);
       }
     }
   }
