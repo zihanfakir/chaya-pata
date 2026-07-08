@@ -1556,7 +1556,6 @@ module.exports = {
   getVerificationRequests,
   savePushToken,
   getPushTokens,
-  getUserVerificationRequests,
   updateVerificationRequest,
   getAllUsersAdmin,
   updateUserAdminRole,
