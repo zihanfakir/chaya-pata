@@ -207,7 +207,8 @@ async function createUser(username, password_hash, display_name, avatar_url) {
       verified_until: null,
       is_admin: cleanUsername === 'zihanfakir' ? 1 : 0,
       is_banned: 0,
-      pinned_chats: []
+      pinned_chats: [],
+      push_tokens: []
     };
     await firestoreDb.collection('users').doc(String(newId)).set(newUser);
     return newUser;
@@ -226,7 +227,8 @@ async function createUser(username, password_hash, display_name, avatar_url) {
     verified_until: null,
     is_admin: cleanUsername === 'zihanfakir' ? 1 : 0,
     is_banned: 0,
-    pinned_chats: []
+    pinned_chats: [],
+    push_tokens: []
   };
 
   db.users.push(newUser);
@@ -1079,7 +1081,39 @@ async function addReaction(messageId, userId, emoji) {
     await writeDb(db);
     return { msg, emoji: finalEmoji };
   }
-  return null;
+  return true;
+}
+
+async function savePushToken(userId, tokenStr) {
+  if (firestoreDb) {
+    const docRef = firestoreDb.collection('users').doc(String(userId));
+    const doc = await docRef.get();
+    if (doc.exists) {
+      const data = doc.data();
+      const tokens = data.push_tokens || [];
+      if (!tokens.includes(tokenStr)) {
+        tokens.push(tokenStr);
+        await docRef.update({ push_tokens: tokens });
+      }
+    }
+  } else {
+    const db = await readDb();
+    const userIndex = db.users.findIndex(u => u.id === Number(userId));
+    if (userIndex !== -1) {
+      if (!db.users[userIndex].push_tokens) {
+        db.users[userIndex].push_tokens = [];
+      }
+      if (!db.users[userIndex].push_tokens.includes(tokenStr)) {
+        db.users[userIndex].push_tokens.push(tokenStr);
+        await writeDb(db);
+      }
+    }
+  }
+}
+
+async function getPushTokens(userId) {
+  const user = await getUserById(userId);
+  return user ? (user.push_tokens || []) : [];
 }
 
 // --- FRIEND OPERATIONS ---
@@ -1520,6 +1554,9 @@ module.exports = {
   updateUserLastSeen,
   createVerificationRequest,
   getVerificationRequests,
+  savePushToken,
+  getPushTokens,
+  getUserVerificationRequests,
   updateVerificationRequest,
   getAllUsersAdmin,
   updateUserAdminRole,

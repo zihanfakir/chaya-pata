@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/push-notifications": "^8.1.1",
     "canvas-confetti": "^1.9.3",
     "emoji-picker-react": "^4.19.1",
+    "firebase": "^12.15.0",
     "lucide-react": "^0.379.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -4,6 +4,7 @@ import Auth from './components/Auth';
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
 import AdminPanel from './components/AdminPanel';
+import PushNotificationManager from './components/PushNotificationManager';
 
 export default function App() {
   // Config & Session State
@@ -631,6 +632,14 @@ export default function App() {
           onClose={() => setShowAdminPanel(false)}
           showToast={showToast}
           showConfirm={showConfirm}
+        />
+      )}
+
+      {user && (
+        <PushNotificationManager
+          serverUrl={serverUrl}
+          token={token}
+          showToast={showToast}
         />
       )}
     </div>

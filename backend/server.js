@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { getMessaging } = require('firebase-admin/messaging');
 const db = require('./db');
 
 const app = express();
@@ -210,6 +211,20 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Subscribe to Push Notifications
+app.post('/api/push/subscribe', authenticateToken, async (req, res) => {
+  const { token, platform } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token required' });
+  
+  try {
+    await db.savePushToken(req.user.id, token);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Push subscribe error:', err);
+    res.status(500).json({ error: 'Failed to subscribe' });
   }
 });
 
@@ -911,6 +926,22 @@ io.on('connection', (socket) => {
         const receiverSocketId = getUserSocket(target_id);
         if (receiverSocketId) {
           io.to(receiverSocketId).emit('message_received', messagePayload);
+        } else {
+          // Send push notification if offline
+          try {
+            const tokens = await db.getPushTokens(target_id);
+            if (tokens && tokens.length > 0) {
+              const payload = {
+                notification: {
+                  title: `New message from ${senderInfo.display_name}`,
+                  body: content || (image_url ? 'Sent an image' : 'New message'),
+                }
+              };
+              await getMessaging().sendEachForMulticast({ tokens, ...payload });
+            }
+          } catch (pushErr) {
+            console.error('Failed to send private push:', pushErr);
+          }
         }
 
         if (callback) callback({ status: 'ok', message: messagePayload });
@@ -944,14 +975,37 @@ io.on('connection', (socket) => {
 
         // Broadcast to group members
         const groupMembers = await db.getGroupMembers(target_id);
-        groupMembers.forEach((member) => {
+        const offlineTokens = [];
+
+        for (const member of groupMembers) {
           if (member.id !== userId) {
             const memberSocketId = getUserSocket(member.id);
             if (memberSocketId) {
               io.to(memberSocketId).emit('message_received', messagePayload);
+            } else {
+              // Collect tokens for offline members
+              const tokens = await db.getPushTokens(member.id);
+              if (tokens && tokens.length > 0) {
+                offlineTokens.push(...tokens);
+              }
             }
           }
-        });
+        }
+
+        if (offlineTokens.length > 0) {
+          try {
+            const groupInfo = await db.getGroupDetails(target_id);
+            const payload = {
+              notification: {
+                title: `${groupInfo.name}`,
+                body: `${senderInfo.display_name}: ${content || (image_url ? 'Sent an image' : 'New message')}`,
+              }
+            };
+            await getMessaging().sendEachForMulticast({ tokens: offlineTokens, ...payload });
+          } catch (pushErr) {
+            console.error('Failed to send group push:', pushErr);
+          }
+        }
 
         if (callback) callback({ status: 'ok', message: messagePayload });
       }
