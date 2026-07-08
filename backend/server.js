@@ -1144,4 +1144,8 @@ db.initDb().then(() => {
   });
 }).catch((err) => {
   console.error('Failed to initialize database:', err);
+  // Still start the server so Render doesn't crash, but it will return 500s for DB calls
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on http://localhost:${PORT} (DB Init Failed)`);
+  });
 });
